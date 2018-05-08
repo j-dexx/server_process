@@ -7,7 +7,7 @@ defmodule ServerProcess do
   end
 
   def call(server_pid, request) do
-    send(server_pid, {request, self()})
+    send(server_pid, {:call, request, self()})
 
     receive do
       {:response, response} ->
@@ -15,9 +15,13 @@ defmodule ServerProcess do
     end
   end
 
+  def cast(server_pid, request) do
+    send(server_pid, {:cast, request})
+  end
+
   defp loop(callback_module, current_state) do
-    receive do
-      {request, caller} ->
+    new_state = receive do
+      {:call, request, caller} ->
         {response, new_state} =
           callback_module.handle_call(
             request,
@@ -25,8 +29,17 @@ defmodule ServerProcess do
           )
 
         send(caller, {:response, response})
+        new_state
 
-        loop(callback_module, new_state)
+      {:cast, request} ->
+        new_state =
+          callback_module.handle_cast(
+            request,
+            current_state
+          )
+        new_state
     end
+
+    loop(callback_module, new_state)
   end
 end
