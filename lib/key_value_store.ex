@@ -14,6 +14,7 @@ defmodule KeyValueStore do
   end
 
   def init(_) do
+    :timer.send_interval(5000, :cleanup) # Sends a message to the caller process - not GenServer specific so GenServer calls handle_info
     {:ok, %{}}
   end
 
@@ -23,5 +24,14 @@ defmodule KeyValueStore do
 
   def handle_cast({:put, key, value},  state) do
     {:noreply, Map.put(state, key, value)}
+  end
+
+  def handle_info(:cleanup, state) do
+    IO.puts "performing cleanup..."
+    {:noreply, state}
+  end
+
+  def handle_info(unknown_message, state) do
+    super(unknown_message, state)
   end
 end
